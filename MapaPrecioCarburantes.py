@@ -6,7 +6,6 @@ Created on Wed Apr  6 16:41:40 2022
 """
 
 import streamlit as st
-
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
 import pandas as pd
 import folium
@@ -42,7 +41,7 @@ def rgb_to_hex(rgb):
 @st.cache
 def cargarFichero():
     URL = "https://geoportalgasolineras.es/resources/files/preciosEESS_es.xls"
-    df = pd.read_excel(URL, skiprows=3, engine="xlrd")
+    df = pd.read_excel(URL, skiprows=3, engine="openpyxl")
     # Provincia	Municipio	Localidad	Código postal	Dirección	Margen	Longitud	Latitud	Toma de datos	
     # Precio gasolina 95 E5	Precio gasolina 95 E10	Precio gasolina 95 E5 Premium	Precio gasolina 98 E5	Precio gasolina 98 E10	Precio gasóleo A	Precio gasóleo Premium	Precio gasóleo B	Precio gasóleo C	Precio bioetanol	% bioalcohol	Precio biodiésel	% éster metílico	Precio gases licuados del petróleo	Precio gas natural comprimido	Precio gas natural licuado	Precio hidrógeno	Rótulo	Tipo venta	Rem.	Horario	Tipo servicio       
     elim = ['MELILLA','CEUTA','PALMAS (LAS)','SANTA CRUZ DE TENERIFE']

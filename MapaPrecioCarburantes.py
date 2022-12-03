@@ -7,9 +7,9 @@ Created on Wed Apr  6 16:41:40 2022
 
 import streamlit as st
 
-#from streamlit_js_eval import streamlit_js_eval, get_geolocation
+from streamlit_js_eval import streamlit_js_eval, get_geolocation
 import pandas as pd
-#import folium
+import folium
 from streamlit_folium import st_folium, folium_static
 from datetime import datetime
 import ssl
@@ -96,8 +96,8 @@ def create_map(dfDib, prov_data):
     for i in range(len(dfDib)):
         folium.Circle(location=[dfDib.Latitud.iat[i],dfDib.Longitud.iat[i],],popup=dfDib.data.iat[i],radius=100,color=dfDib.color.iat[i],fill=True, fill_opacity=0.7).add_to(m)
     
-#    if (location != None):
-#        folium.Marker([location.get('coords').get('latitude'), location.get('coords').get('longitude')],radius=500,popup="Mi posición",color="#3186cc",fill=True,fill_color="#3186cc").add_to(m)
+    if (location != None):
+        folium.Marker([location.get('coords').get('latitude'), location.get('coords').get('longitude')],radius=500,popup="Mi posición",color="#3186cc",fill=True,fill_color="#3186cc").add_to(m)
     folium_static(m, width=900, height=600)
    
 
@@ -112,13 +112,13 @@ def display_precios_provincia(df, prov_name):
     with col3:
         st.metric('Máximo', str(df['max'].iat[0])+' €')
 
-#def getMyPosition():
-#    global location 
-#    location = get_geolocation()
-#    #st.sidebar.write(location)
+def getMyPosition():
+    global location 
+    location = get_geolocation()
+    #st.sidebar.write(location)
     
-#def myPosition():
-#    return st.sidebar.button('Mi posición', on_click= getMyPosition())
+def myPosition():
+    return st.sidebar.button('Mi posición', on_click= getMyPosition())
 
 st.set_page_config(page_title=APP_TITLE,layout="wide")
 st.title(APP_TITLE)
@@ -128,7 +128,7 @@ st.caption(APP_SUB_TITLE2)
 
 df = cargarFichero()
 
-#myPosition()
+myPosition()
 
 combustible = display_comb_filter()
 

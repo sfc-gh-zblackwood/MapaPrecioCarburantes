@@ -6,10 +6,10 @@ Created on Wed Apr  6 16:41:40 2022
 """
 
 import streamlit as st
-import streamlit.components.v1 as components
+
 #from streamlit_js_eval import streamlit_js_eval, get_geolocation
 import pandas as pd
-import folium
+#import folium
 from streamlit_folium import st_folium, folium_static
 from datetime import datetime
 import ssl

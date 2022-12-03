@@ -6,7 +6,7 @@ Created on Wed Apr  6 16:41:40 2022
 """
 
 import streamlit as st
-from streamlit_js_eval import get_geolocation
+from streamlit_js_eval import streamlit_js_eval, get_geolocation
 import pandas as pd
 import folium
 from streamlit_folium import st_folium, folium_static

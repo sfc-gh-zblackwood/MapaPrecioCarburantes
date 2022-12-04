@@ -102,7 +102,7 @@ def create_map(dfDib, prov_data):
     if w>1000 :
         folium_static(m, width=900, height=600)
     else:
-        folium_static(m, width=600, height=900)
+        folium_static(m, width=500, height=500)
    
 
 def display_precios_provincia(df, prov_name):

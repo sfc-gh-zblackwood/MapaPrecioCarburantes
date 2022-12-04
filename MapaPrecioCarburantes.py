@@ -97,14 +97,17 @@ def create_map(dfDib, prov_data):
     
     if (location != None):
         folium.Marker([location.get('coords').get('latitude'), location.get('coords').get('longitude')],radius=500,popup="Mi posición",color="#3186cc",fill=True,fill_color="#3186cc").add_to(m)
-    # w = streamlit_js_eval(js_expressions='screen.width', key = 'SCR')
+    w = streamlit_js_eval(js_expressions='screen.width', key = 'SCR')
 
-    # if w>1000 :
-    #     folium_static(m, width=900, height=600)
-    # else:
-    st.write(f"Screen width is _{streamlit_js_eval(js_expressions='screen.width', want_output = True, key = 'SCR')}_")
-    folium_static(m, width=500, height=500)
-   
+    
+    if w != None:
+        if w>1000 :
+            folium_static(m, width=900, height=600)
+        else:
+            st.write(f"Screen width is _{streamlit_js_eval(js_expressions='screen.width', want_output = True, key = 'SCR')}_")
+            folium_static(m, width=500, height=500)
+    else:
+       folium_static(m, width=500, height=500)
 
 def display_precios_provincia(df, prov_name):
     st.sidebar.subheader(f'Precio {combustible}:')    

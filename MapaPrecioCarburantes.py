@@ -13,6 +13,8 @@ from streamlit_folium import st_folium, folium_static
 from datetime import datetime
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
+import geopandas as gpd
+from math import sqrt
 
 
 APP_TITLE = 'Precio de carburantes de estaciones de servicio'
@@ -36,6 +38,8 @@ columnas = ['Provincia', 'Municipio', 'Localidad', 'Código postal', 'Dirección
 
 provincia = 'VALENCIA / VALÈNCIA'
 
+posEval = False
+
 def rgb_to_hex(rgb):
     return '%02x%02x%02x' % rgb
 @st.cache
@@ -51,7 +55,7 @@ def cargarFichero():
     df = df[~df['Dirección'].str.contains('CARRETERA VICALVARO A ESTACION DE')]
     FAct = "Actualizado: "+datetime.now().strftime("%d/%m/%Y %H:%M")
     return df
-@st.cache
+@st.cache(allow_output_mutation=True)
 def selectData(df, combustible, provincia):
     prov_data = df.groupby('Provincia')[combustible].aggregate(['mean', 'min', 'max']).reset_index()
     prov_data['codigo'] = ''
@@ -86,7 +90,7 @@ def display_prov_filter():
 def display_comb_filter():
     return st.sidebar.radio('Combustible', ['Precio gasolina 95 E5','Precio gasolina 98 E5','Precio gasóleo A'])
 
-def create_map(dfDib, prov_data):
+def create_map(dfDib, prov_data, location, radio):
     medlon=dfDib.Longitud.mean()
     medlat=dfDib.Latitud.mean()    
     m = folium.Map(location=[medlat, medlon], zoom_start=8,attr='LOL',max_bounds=True,min_zoom=5.5)
@@ -97,15 +101,7 @@ def create_map(dfDib, prov_data):
     
     if (location != None):
         folium.Marker([location.get('coords').get('latitude'), location.get('coords').get('longitude')],radius=500,popup="Mi posición",color="#3186cc",fill=True,fill_color="#3186cc").add_to(m)
-    #w = streamlit_js_eval(js_expressions='screen.width', key = 'SCR')
-
-    #if w != None:
-    #    if w>1000 :
-    #        folium_static(m, width=900, height=600)
-    #    else:
-    #        st.write(f"Screen width is _{streamlit_js_eval(js_expressions='screen.width', want_output = True, key = 'SCR')}_")
-    #        folium_static(m, width=500, height=500)
-    #else:
+        folium.vector_layers.Circle(location=[location.get('coords').get('latitude'), location.get('coords').get('longitude')], radius=radio*1000, color='orange').add_to(m)
     folium_static(m, width=500, height=500)
 
 def display_precios_provincia(df, prov_name):
@@ -119,13 +115,27 @@ def display_precios_provincia(df, prov_name):
     with col3:
         st.metric('Máximo', str(df['max'].iat[0])+' €')
 
-def getMyPosition():
-    global location 
-    location = get_geolocation()
-    #st.sidebar.write(location)
-    
 def myPosition():
-    return st.sidebar.button('Mi posición', on_click= getMyPosition())
+    return st.checkbox('Obtener mi posición')
+
+def get_buffer_box_geopandas(point_lat_long, distance_km):
+    # distance is d/2 of the square buffer around the point,
+    # from center to corner;
+    # find buffer width in meters
+    buffer_width_m = (distance_km * 1000) / sqrt(2)
+    (p_lat, p_long) = point_lat_long
+
+    # Geopandas Geodataframe with a single point
+    # EPSG:4326 sets Coordinate Reference System to WGS84 to match input
+    wgs84_pt_gdf = gpd.GeoDataFrame(geometry = gpd.points_from_xy([p_long],[p_lat], crs='EPSG:4326'))
+    
+    # find suitable projected coordinate system for distance
+    utm_crs = wgs84_pt_gdf.estimate_utm_crs()
+    # reproject to UTM -> create square buffer (cap_style = 3) around point -> reproject back to WGS84
+    wgs84_buffer = wgs84_pt_gdf.to_crs(utm_crs).buffer(buffer_width_m, cap_style=3).to_crs('EPSG:4326')
+    # wgs84_buffer.bounds returns bounding box as pandas dataframe, 
+    # .values[0] will extract first row as an array
+    return wgs84_buffer.bounds.values[0]
 
 st.set_page_config(page_title=APP_TITLE,layout="wide")
 st.title(APP_TITLE)
@@ -135,22 +145,37 @@ st.caption(APP_SUB_TITLE2)
 
 df = cargarFichero()
 
-myPosition()
-
 combustible = display_comb_filter()
 
 provincia = display_prov_filter()
 
 dfDib, prov_data = selectData(df, combustible, provincia)
 
-create_map(dfDib, prov_data)
-
-baratas = dfDib.sort_values(by=combustible).reset_index(inplace=False)
-
-st.subheader('Más baratas:')
-
-x=10
-for i in range(x+1):
-    st.write(baratas.Localidad.iat[i]+' : '+baratas['Dirección'].iat[i]+' -- '+str(baratas['Código postal'].iat[i])+' -- Horario: '+str(baratas['Horario'].iat[i])+' --  Precio: '+str(baratas[combustible].iat[i])+' €')
-
 display_precios_provincia(prov_data, provincia)
+
+posEval = myPosition()
+
+location = None
+radio = 5
+
+if posEval:
+    location = get_geolocation()
+    
+if location != None:
+    radio = st.slider('Distancia: ', min_value=1, max_value=15, value=5, step=1)
+    create_map(dfDib, prov_data, location, radio)
+    gdf = gpd.GeoDataFrame(dfDib, geometry=gpd.points_from_xy(dfDib.Longitud, dfDib.Latitud))
+    bb = get_buffer_box_geopandas([location.get('coords').get('latitude'), location.get('coords').get('longitude')],radio)
+    gdfDib = gdf.cx[bb[0]:bb[2], bb[1]:bb[3]]
+    baratas = gdfDib.sort_values(by=combustible).reset_index(inplace=False)
+    st.subheader('Más baratas a: ' + str(radio)+ ' kms de tu posición')
+    x=min(len(baratas), 10)
+    for i in range(x+1):
+        st.write(baratas.Localidad.iat[i]+' : '+baratas['Dirección'].iat[i]+' -- '+str(baratas['Código postal'].iat[i])+' -- Horario: '+str(baratas['Horario'].iat[i])+' --  Precio: '+str(baratas[combustible].iat[i])+' €')
+else :
+    create_map(dfDib, prov_data, location, radio)
+    baratas = dfDib.sort_values(by=combustible).reset_index(inplace=False)
+    st.subheader('Más baratas de la provincia:')
+    x=min(len(baratas), 10)
+    for i in range(x+1):
+        st.write(baratas.Localidad.iat[i]+' : '+baratas['Dirección'].iat[i]+' -- '+str(baratas['Código postal'].iat[i])+' -- Horario: '+str(baratas['Horario'].iat[i])+' --  Precio: '+str(baratas[combustible].iat[i])+' €')

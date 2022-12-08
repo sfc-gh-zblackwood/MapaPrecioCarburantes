@@ -15,7 +15,7 @@ import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 import geopandas as gpd
 from math import sqrt
-
+import pytz
 
 APP_TITLE = 'Precio de carburantes de estaciones de servicio'
 APP_SUB_TITLE = 'Fuente: Ministerio transición ecológica.'
@@ -44,6 +44,7 @@ def rgb_to_hex(rgb):
     return '%02x%02x%02x' % rgb
 @st.cache
 def cargarFichero():
+    global FAct
     URL = "https://geoportalgasolineras.es/resources/files/preciosEESS_es.xls"
     df = pd.read_excel(URL, skiprows=3, engine="xlrd")
     # Provincia	Municipio	Localidad	Código postal	Dirección	Margen	Longitud	Latitud	Toma de datos	
@@ -53,7 +54,7 @@ def cargarFichero():
     cols = ['Precio gasolina 95 E5','Precio gasolina 98 E5','Precio gasóleo A','Longitud','Latitud']
     df[cols]=df[cols].replace(',','.',regex=True).astype(float)
     df = df[~df['Dirección'].str.contains('CARRETERA VICALVARO A ESTACION DE')]
-    FAct = "Actualizado: "+datetime.now().strftime("%d/%m/%Y %H:%M")
+    FAct = "Actualizado: "+datetime.now(tz=pytz.timezone('Europe/Madrid')).strftime("%d/%m/%Y %H:%M")
     return df
 @st.cache(allow_output_mutation=True)
 def selectData(df, combustible, provincia):
@@ -139,11 +140,13 @@ def get_buffer_box_geopandas(point_lat_long, distance_km):
 
 st.set_page_config(page_title=APP_TITLE,layout="wide")
 st.title(APP_TITLE)
-FAct = "Actualizado: "+datetime.now().strftime("%d/%m/%Y %H:%M")
+# FAct = "Actualizado: "+datetime.now().strftime("%d/%m/%Y %H:%M")
+
+df = cargarFichero()
+
 st.caption(APP_SUB_TITLE+'\n'+FAct)
 st.caption(APP_SUB_TITLE2)
 
-df = cargarFichero()
 
 combustible = display_comb_filter()
 

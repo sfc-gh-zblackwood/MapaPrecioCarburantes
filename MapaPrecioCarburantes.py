@@ -138,6 +138,9 @@ def get_buffer_box_geopandas(point_lat_long, distance_km):
     # .values[0] will extract first row as an array
     return wgs84_buffer.bounds.values[0]
 
+
+global FAct
+
 st.set_page_config(page_title=APP_TITLE,layout="wide")
 st.title(APP_TITLE)
 # FAct = "Actualizado: "+datetime.now().strftime("%d/%m/%Y %H:%M")

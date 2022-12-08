@@ -19,7 +19,7 @@ from math import sqrt
 
 APP_TITLE = 'Precio de carburantes de estaciones de servicio'
 APP_SUB_TITLE = 'Fuente: Ministerio transición ecológica.'
-APP_SUB_TITLE2 = 'Autor: Xavi Lluch - ai2 - UPV.    Twitter: @xavi_runner'
+APP_SUB_TITLE2 = 'Autor: Xavi Lluch - ai2 - UPV.    Twitter: @xavi_runner [link](https://twitter.com/xavi_runner)'
 
 prov = ['ALBACETE','ALICANTE','ALMERÍA','ARABA/ÁLAVA','ASTURIAS','ÁVILA','BADAJOZ','BALEARS (ILLES)','BARCELONA','BIZKAIA','BURGOS','CÁCERES','CÁDIZ','CANTABRIA','CASTELLÓN / CASTELLÓ','CIUDAD REAL','CÓRDOBA','CORUÑA (A)','CUENCA','GIPUZKOA','GIRONA','GRANADA','GUADALAJARA','HUELVA','HUESCA','JAÉN','LEÓN','LLEIDA','LUGO',
 'MADRID','MÁLAGA','MURCIA','NAVARRA','OURENSE','PALENCIA','PONTEVEDRA','RIOJA (LA)','SALAMANCA','SEGOVIA','SEVILLA','SORIA','TARRAGONA','TERUEL','TOLEDO','VALENCIA / VALÈNCIA','VALLADOLID','ZAMORA','ZARAGOZA']#,'MELILLA','CEUTA','PALMAS (LAS)','SANTA CRUZ DE TENERIFE']

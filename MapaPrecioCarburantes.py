@@ -181,5 +181,6 @@ else :
     baratas = dfDib.sort_values(by=combustible).reset_index(inplace=False)
     st.subheader('Más baratas de la provincia:')
     x=min(len(baratas), 10)
-    for i in range(x+1):
-        st.write(baratas.Localidad.iat[i]+' : '+baratas['Dirección'].iat[i]+' -- '+str(baratas['Código postal'].iat[i])+' -- Horario: '+str(baratas['Horario'].iat[i])+' --  Precio: '+str(baratas[combustible].iat[i])+' €')
+    if x>0:
+        for i in range(x+1):
+            st.write(baratas.Localidad.iat[i]+' : '+baratas['Dirección'].iat[i]+' -- '+str(baratas['Código postal'].iat[i])+' -- Horario: '+str(baratas['Horario'].iat[i])+' --  Precio: '+str(baratas[combustible].iat[i])+' €')

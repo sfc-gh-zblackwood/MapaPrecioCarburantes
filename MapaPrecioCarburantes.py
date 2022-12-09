@@ -174,13 +174,13 @@ if location != None:
     baratas = gdfDib.sort_values(by=combustible).reset_index(inplace=False)
     st.subheader('Más baratas a: ' + str(radio)+ ' kms de tu posición')
     x=min(len(baratas), 10)
-    for i in range(x+1):
-        st.write(baratas.Localidad.iat[i]+' : '+baratas['Dirección'].iat[i]+' -- '+str(baratas['Código postal'].iat[i])+' -- Horario: '+str(baratas['Horario'].iat[i])+' --  Precio: '+str(baratas[combustible].iat[i])+' €')
+    if x>0:
+        for i in range(x+1):
+            st.write(baratas.Localidad.iat[i]+' : '+baratas['Dirección'].iat[i]+' -- '+str(baratas['Código postal'].iat[i])+' -- Horario: '+str(baratas['Horario'].iat[i])+' --  Precio: '+str(baratas[combustible].iat[i])+' €')
 else :
     create_map(dfDib, prov_data, location, radio)
     baratas = dfDib.sort_values(by=combustible).reset_index(inplace=False)
     st.subheader('Más baratas de la provincia:')
     x=min(len(baratas), 10)
-    if x>0:
-        for i in range(x+1):
-            st.write(baratas.Localidad.iat[i]+' : '+baratas['Dirección'].iat[i]+' -- '+str(baratas['Código postal'].iat[i])+' -- Horario: '+str(baratas['Horario'].iat[i])+' --  Precio: '+str(baratas[combustible].iat[i])+' €')
+    for i in range(x+1):
+        st.write(baratas.Localidad.iat[i]+' : '+baratas['Dirección'].iat[i]+' -- '+str(baratas['Código postal'].iat[i])+' -- Horario: '+str(baratas['Horario'].iat[i])+' --  Precio: '+str(baratas[combustible].iat[i])+' €')

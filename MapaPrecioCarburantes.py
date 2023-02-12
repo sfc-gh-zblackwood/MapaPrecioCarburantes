@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 """
 Created on Wed Apr  6 16:41:40 2022
@@ -9,6 +10,7 @@ import streamlit as st
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
 import pandas as pd
 import folium
+from folium.plugins import MarkerCluster
 from streamlit_folium import st_folium, folium_static
 from datetime import datetime
 import ssl
@@ -31,19 +33,16 @@ prov_dict = {'02': 'Albacete', '03': 'Alicante/Alacant', '04': 'Almería', '01':
 
 prov_geo = 'provincias.geojson'
 
-
 columnas = ['Provincia', 'Municipio', 'Localidad', 'Código postal', 'Dirección','Longitud', 'Latitud', 'Toma de datos', 
            'Precio gasolina 95 E5', 'Precio gasolina 98 E5','Precio gasóleo A', 'Rótulo', 'Horario']
 
 
-provincia = 'VALENCIA / VALÈNCIA'
-
-posEval = False
-
 def rgb_to_hex(rgb):
     return '%02x%02x%02x' % rgb
-@st.cache
+
+@st.cache_data(ttl=86400) 
 def cargarFichero():
+    FAct = "Actualizado: "+datetime.now(tz=pytz.timezone('Europe/Madrid')).strftime("%d/%m/%Y %H:%M")
     URL = "https://geoportalgasolineras.es/resources/files/preciosEESS_es.xls"
     df = pd.read_excel(URL, skiprows=3, engine="xlrd")
     # Provincia	Municipio	Localidad	Código postal	Dirección	Margen	Longitud	Latitud	Toma de datos	
@@ -53,21 +52,18 @@ def cargarFichero():
     cols = ['Precio gasolina 95 E5','Precio gasolina 98 E5','Precio gasóleo A','Longitud','Latitud']
     df[cols]=df[cols].replace(',','.',regex=True).astype(float)
     df = df[~df['Dirección'].str.contains('CARRETERA VICALVARO A ESTACION DE')]
-    return df
-@st.cache(allow_output_mutation=True)
-def selectData(df, combustible, provincia):
+    
+    gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.Longitud, df.Latitud))
+   
     prov_data = df.groupby('Provincia')[combustible].aggregate(['mean', 'min', 'max']).reset_index()
     prov_data['codigo'] = ''
     prov_data['codigo'] = prov_data['Provincia'].apply(lambda x: cod[prov.index(x)])
-    
-    dfaux = df[df.Provincia==provincia].copy()
-    dfaux = dfaux[columnas]
-    dfaux = dfaux.dropna(subset=[combustible]).reset_index()
-    dfaux['data'] = ''
-    dfaux['color'] = ''
-    for i in range(len(dfaux)):
-        pr = dfaux[combustible].iat[i]
-        pro = dfaux.Provincia.iat[i]
+
+    df['data'] = ''
+    df['color'] = ''
+    for i in range(len(df)):
+        pr = df[combustible].iat[i]
+        pro = df.Provincia.iat[i]
         maxim = prov_data[prov_data.Provincia==pro].iat[0,3]
         minim = prov_data[prov_data.Provincia==pro].iat[0,2]
         dif = maxim-minim
@@ -76,11 +72,9 @@ def selectData(df, combustible, provincia):
         else:
             norm = (pr-minim)/dif
         if norm>=0:           
-            dfaux['color'].iat[i] = '#'+rgb_to_hex((int(norm*255),int((1.0-norm)*255),0))
-            dfaux['data'].iat[i] = str(dfaux.Localidad.iat[i])+"\n"+str(dfaux.Dirección.iat[i])+"\nGas 95: "+str(pr)+"€"+"\nDiesel: "+str(dfaux['Precio gasóleo A'].iat[i])+"€"
-        
-    return dfaux, prov_data
-
+            df['color'].iat[i] = '#'+rgb_to_hex((int(norm*255),int((1.0-norm)*255),0))
+            df['data'].iat[i] = str(df.Localidad.iat[i])+"\n"+str(df.Dirección.iat[i])+"\nGas 95: "+str(pr)+"€"+"\nDiesel: "+str(df['Precio gasóleo A'].iat[i])+"€"
+    return df, prov_data, gdf, FAct
 
 def display_prov_filter():    
     provincia = st.sidebar.selectbox('Provincia', prov, index=44, key='selectProv')
@@ -89,30 +83,16 @@ def display_prov_filter():
 def display_comb_filter():
     return st.sidebar.radio('Combustible', ['Precio gasolina 95 E5','Precio gasolina 98 E5','Precio gasóleo A'])
 
-def create_map(dfDib, prov_data, location, radio):
-    medlon=dfDib.Longitud.mean()
-    medlat=dfDib.Latitud.mean()    
-    m = folium.Map(location=[medlat, medlon], zoom_start=8,attr='LOL',max_bounds=True,min_zoom=5.5)
-    coropletas = folium.Choropleth(geo_data=prov_geo,name="choropleth",data=prov_data,columns=["codigo", 'mean'],key_on="properties.codigo", fill_color="Greys",fill_opacity=0.4,line_opacity=1.0,legend_name="Precio medio: "+combustible)
-    coropletas.add_to(m)
-    for i in range(len(dfDib)):
-        folium.Circle(location=[dfDib.Latitud.iat[i],dfDib.Longitud.iat[i],],popup=dfDib.data.iat[i],radius=100,color=dfDib.color.iat[i],fill=True, fill_opacity=0.7).add_to(m)
-    
-    if (location != None):
-        folium.Marker([location.get('coords').get('latitude'), location.get('coords').get('longitude')],radius=500,popup="Mi posición",color="#3186cc",fill=True,fill_color="#3186cc").add_to(m)
-        folium.vector_layers.Circle(location=[location.get('coords').get('latitude'), location.get('coords').get('longitude')], radius=radio*1000, color='orange').add_to(m)
-    folium_static(m, width=500, height=500)
-
-def display_precios_provincia(df, prov_name):
+def display_precios_provincia():
     st.sidebar.subheader(f'Precio {combustible}:')    
-    df = df[(df['Provincia'] == prov_name)]  
+    dfaux = prov_data[prov_data['Provincia'] == provincia]
     col1, col2, col3 = st.sidebar.columns(3)
     with col1:
-        st.metric('Mínimo', str(df['min'].iat[0])+' €')
+        st.metric('Mínimo', str(dfaux['min'].iat[0])+' €')
     with col2:        
-        st.metric('Medio', str(round(df['mean'].iat[0],3))+' €')
+        st.metric('Medio', str(round(dfaux['mean'].iat[0],3))+' €')
     with col3:
-        st.metric('Máximo', str(df['max'].iat[0])+' €')
+        st.metric('Máximo', str(dfaux['max'].iat[0])+' €')
 
 def myPosition():
     return st.checkbox('Obtener mi posición')
@@ -136,26 +116,18 @@ def get_buffer_box_geopandas(point_lat_long, distance_km):
     # .values[0] will extract first row as an array
     return wgs84_buffer.bounds.values[0]
 
-
-
-
 st.set_page_config(page_title=APP_TITLE,layout="wide")
 st.title(APP_TITLE)
-FAct = "Actualizado: "+datetime.now(tz=pytz.timezone('Europe/Madrid')).strftime("%d/%m/%Y %H:%M")
 
-df = cargarFichero()
+combustible = display_comb_filter()
+provincia = display_prov_filter()
+
+df, prov_data, gdf, FAct = cargarFichero()
 
 st.caption(APP_SUB_TITLE+'\n'+FAct)
 st.caption(APP_SUB_TITLE2)
 
-
-combustible = display_comb_filter()
-
-provincia = display_prov_filter()
-
-dfDib, prov_data = selectData(df, combustible, provincia)
-
-display_precios_provincia(prov_data, provincia)
+display_precios_provincia()
 
 posEval = myPosition()
 
@@ -167,20 +139,36 @@ if posEval:
     
 if location != None:
     radio = st.slider('Distancia: ', min_value=1, max_value=15, value=5, step=1)
-    create_map(dfDib, prov_data, location, radio)
-    gdf = gpd.GeoDataFrame(dfDib, geometry=gpd.points_from_xy(dfDib.Longitud, dfDib.Latitud))
+    latMap = location.get('coords').get('latitude')
+    lonMap = location.get('coords').get('longitude')
+    fg = folium.FeatureGroup(name="State bounds")
+    fg.add_child(folium.Marker([latMap , lonMap ],radius=500,popup="Mi posición",color="#3186cc",fill=True,fill_color="#3186cc"))
+    fg.add_child(folium.vector_layers.Circle(location=[latMap , lonMap], radius=radio*1000, color='orange'))
     bb = get_buffer_box_geopandas([location.get('coords').get('latitude'), location.get('coords').get('longitude')],radio)
-    gdfDib = gdf.cx[bb[0]:bb[2], bb[1]:bb[3]]
-    baratas = gdfDib.sort_values(by=combustible).reset_index(inplace=False)
+    gdfSel = gdf.cx[bb[0]:bb[2], bb[1]:bb[3]]
+    baratas = gdfSel.sort_values(by=combustible).reset_index(inplace=False)
     st.subheader('Más baratas a: ' + str(radio)+ ' kms de tu posición')
-    x=min(len(baratas), 10)
-    if x>0:
-        for i in range(x+1):
-            st.write(baratas.Localidad.iat[i]+' : '+baratas['Dirección'].iat[i]+' -- '+str(baratas['Código postal'].iat[i])+' -- Horario: '+str(baratas['Horario'].iat[i])+' --  Precio: '+str(baratas[combustible].iat[i])+' €')
+
 else :
-    create_map(dfDib, prov_data, location, radio)
-    baratas = dfDib.sort_values(by=combustible).reset_index(inplace=False)
-    st.subheader('Más baratas de la provincia:')
-    x=min(len(baratas), 10)
-    for i in range(x+1):
-        st.write(baratas.Localidad.iat[i]+' : '+baratas['Dirección'].iat[i]+' -- '+str(baratas['Código postal'].iat[i])+' -- Horario: '+str(baratas['Horario'].iat[i])+' --  Precio: '+str(baratas[combustible].iat[i])+' €')
+    lonMap=df[df['Provincia'] == provincia].Longitud.mean()
+    latMap=df[df['Provincia'] == provincia].Latitud.mean()    
+    baratas = df[(df['Provincia'] == provincia)].sort_values(by=combustible).reset_index(inplace=False)
+    st.subheader('Más baratas de la provincia: '+provincia)
+
+x=min(len(baratas), 10)
+if x>0:
+    for i in range(x):
+        st.write(baratas.Localidad.iat[i]+' : '+baratas['Dirección'].iat[i]+' -- '+str(baratas['Código postal'].iat[i])+' -- Horario: '+str(baratas['Horario'].iat[i])+' --  Precio: '+str(baratas[combustible].iat[i])+' €')    
+
+m = folium.Map(location=[latMap, lonMap], zoom_start=8,attr='LOL',max_bounds=True,min_zoom=5.5)
+mc = MarkerCluster()
+for i in range(len(df)):
+    folium.CircleMarker(location=[df.Latitud.iat[i],df.Longitud.iat[i],],popup=df.data.iat[i],radius=10,color=df.color.iat[i],fill=True, fill_opacity=0.7).add_to(mc)
+
+mc.add_to(m)
+folium.Choropleth(geo_data=prov_geo,name="choropleth",data=prov_data,columns=["codigo", 'mean'],key_on="properties.codigo", fill_color="Greys",fill_opacity=0.4,line_opacity=1.0,legend_name="Precio medio: "+combustible).add_to(m)
+
+if location != None: 
+    m.add_child(fg)
+
+folium_static(m, width=800, height=800)

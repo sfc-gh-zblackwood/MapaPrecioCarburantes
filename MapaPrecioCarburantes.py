@@ -171,4 +171,4 @@ folium.Choropleth(geo_data=prov_geo,name="choropleth",data=prov_data,columns=["c
 if location != None: 
     m.add_child(fg)
 
-folium_static(m, width=400, height=400)
+folium_static(m, width=400, height=600)

@@ -13,11 +13,13 @@ import folium
 from folium.plugins import MarkerCluster
 from streamlit_folium import st_folium, folium_static
 from datetime import datetime
-#import ssl
-#ssl._create_default_https_context = ssl._create_unverified_context
 import geopandas as gpd
 from math import sqrt
 import pytz
+
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+
 
 APP_TITLE = 'Precio de carburantes de estaciones de servicio'
 APP_SUB_TITLE = 'Fuente: Ministerio transición ecológica.'

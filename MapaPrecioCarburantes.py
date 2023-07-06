@@ -17,9 +17,6 @@ import geopandas as gpd
 from math import sqrt
 import pytz
 
-import ssl
-ssl._create_default_https_context = ssl._create_unverified_context
-
 
 APP_TITLE = 'Precio de carburantes de estaciones de servicio'
 APP_SUB_TITLE = 'Fuente: Ministerio transición ecológica.'

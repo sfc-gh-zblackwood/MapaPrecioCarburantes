@@ -46,7 +46,7 @@ def cargarFichero():
     import urllib3
     import io
     requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS = 'ALL:@SECLEVEL=1'
-    URL = "http://geoportalgasolineras.es/resources/files/preciosEESS_es.xls"
+    URL = "https://geoportalgasolineras.es/resources/files/preciosEESS_es.xls"
 
     res = requests.get(URL)
     st.write(res)

@@ -4,3 +4,4 @@ streamlit_folium
 streamlit_js_eval
 xlrd
 geopandas
+cryptography==36.0.2

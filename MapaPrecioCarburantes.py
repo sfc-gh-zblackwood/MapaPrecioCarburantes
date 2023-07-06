@@ -13,8 +13,8 @@ import folium
 from folium.plugins import MarkerCluster
 from streamlit_folium import st_folium, folium_static
 from datetime import datetime
-import ssl
-ssl._create_default_https_context = ssl._create_unverified_context
+#import ssl
+#ssl._create_default_https_context = ssl._create_unverified_context
 import geopandas as gpd
 from math import sqrt
 import pytz

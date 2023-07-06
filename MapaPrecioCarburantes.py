@@ -47,7 +47,7 @@ def cargarFichero():
     import io
     requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS = 'ALL:@SECLEVEL=1'
     URL = "https://geoportalgasolineras.es/resources/files/preciosEESS_es.xls"
-
+    st.write("Loading", URL)
     res = requests.get(URL)
     st.write(res)
     df = pd.read_excel(io.BytesIO(res.content), skiprows=3, engine="xlrd")
